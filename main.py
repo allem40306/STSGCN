@@ -170,4 +170,4 @@ print('step: {}\ntraining loss: {:.2f}\nvalidation loss: {:.2f}\n'
 print(the_best)
 
 if args.save:
-    mod.save_checkpoint('STSGCN', epochs)
+    mod.save_checkpoint(f'STSGCN_{config_filename.replace("/","_")}', epochs)
