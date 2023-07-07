@@ -26,7 +26,7 @@ def construct_model(config):
             id_filename = None
 
     adj = get_adjacency_matrix(adj_filename, num_of_vertices,
-                               id_filename=id_filename)
+                               id_filename=id_filename, type_ = "distance")
     adj_mx = construct_adj(adj, 3)
     print("The shape of localized adjacency matrix: {}".format(
         adj_mx.shape), flush=True)
@@ -115,7 +115,7 @@ def get_adjacency_matrix(distance_df_filename, num_of_vertices,
             if type_ == 'connectivity':
                 A[i, j] = 1
                 A[j, i] = 1
-            elif type == 'distance':
+            elif type_ == 'distance':
                 A[i, j] = 1 / distance
                 A[j, i] = 1 / distance
             else:
@@ -155,11 +155,11 @@ def construct_adj(A, steps):
     return adj
 
 
-def generate_from_train_val_test(data, transformer):
+def generate_from_train_val_test(data, transformer, num_of_features):
     mean = None
     std = None
     for key in ('train', 'val', 'test'):
-        x, y = generate_seq(data[key], 12, 12)
+        x, y = generate_seq(data[key], 12, 12, num_of_features)
         if transformer:
             x = transformer(x)
             y = transformer(y)
@@ -170,14 +170,14 @@ def generate_from_train_val_test(data, transformer):
         yield (x - mean) / std, y
 
 
-def generate_from_data(data, length, transformer):
+def generate_from_data(data, length, transformer, num_of_features):
     mean = None
     std = None
     train_line, val_line = int(length * 0.6), int(length * 0.8)
     for line1, line2 in ((0, train_line),
                          (train_line, val_line),
                          (val_line, length)):
-        x, y = generate_seq(data['data'][line1: line2], 12, 12)
+        x, y = generate_seq(data['data'][line1: line2], 12, 12, num_of_features)
         if transformer:
             x = transformer(x)
             y = transformer(y)
@@ -188,28 +188,28 @@ def generate_from_data(data, length, transformer):
         yield (x - mean) / std, y
 
 
-def generate_data(graph_signal_matrix_filename, transformer=None):
+def generate_data(graph_signal_matrix_filename, num_of_features, transformer=None):
     '''
     shape is (num_of_samples, 12, num_of_vertices, 1)
     '''
     data = np.load(graph_signal_matrix_filename)
     keys = data.keys()
     if 'train' in keys and 'val' in keys and 'test' in keys:
-        for i in generate_from_train_val_test(data, transformer):
+        for i in generate_from_train_val_test(data, transformer, num_of_features):
             yield i
     elif 'data' in keys:
         length = data['data'].shape[0]
-        for i in generate_from_data(data, length, transformer):
+        for i in generate_from_data(data, length, transformer, num_of_features):
             yield i
     else:
         raise KeyError("neither data nor train, val, test is in the data")
 
 
-def generate_seq(data, train_length, pred_length):
+def generate_seq(data, train_length, pred_length, num_of_features):
     seq = np.concatenate([np.expand_dims(
         data[i: i + train_length + pred_length], 0)
         for i in range(data.shape[0] - train_length - pred_length + 1)],
-        axis=0)[:, :, :, 0: 1]
+        axis=0)[:, :, :, 0: num_of_features]
     return np.split(seq, 2, axis=1)
 
 

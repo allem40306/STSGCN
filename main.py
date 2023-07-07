@@ -28,6 +28,7 @@ net = construct_model(config)
 
 batch_size = config['batch_size']
 num_of_vertices = config['num_of_vertices']
+num_of_features = config['num_of_features']
 graph_signal_matrix_filename = config['graph_signal_matrix_filename']
 if isinstance(config['ctx'], list):
     ctx = [mx.gpu(i) for i in config['ctx']]
@@ -36,12 +37,12 @@ elif isinstance(config['ctx'], int):
 
 loaders = []
 true_values = []
-for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename)):
+for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename, num_of_features=num_of_features)):
     if args.test:
         x = x[: 100]
         y = y[: 100]
+    y = y[:, :, :, 0:1]
     y = y.squeeze(axis=-1)
-    print(x.shape, y.shape)
     loaders.append(
         mx.io.NDArrayIter(
             x, y if idx == 0 else None,
@@ -73,7 +74,7 @@ mod = mx.mod.Module(
 mod.bind(
     data_shapes=[(
         'data',
-        (batch_size, config['points_per_hour'], num_of_vertices, 1)
+        (batch_size, config['points_per_hour'], num_of_vertices, num_of_features)
     ), ],
     label_shapes=[(
         'label',
@@ -163,6 +164,7 @@ if args.test:
     epochs = 5
 training(epochs)
 
+print(all_info)
 the_best = min(all_info, key=lambda x: x[2])
 print('step: {}\ntraining loss: {:.2f}\nvalidation loss: {:.2f}\n'
       'tesing: MAE: {:.2f}\ntesting: MAPE: {:.2f}\n'
