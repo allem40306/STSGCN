@@ -17,6 +17,7 @@ def construct_model(config):
 
     num_of_vertices = config['num_of_vertices']
     num_of_features = config['num_of_features']
+    predict_features = config['predict_features']
     points_per_hour = config['points_per_hour']
     num_for_predict = config['num_for_predict']
     adj_filename = config['adj_filename']
@@ -56,15 +57,15 @@ def construct_model(config):
         first_layer_embedding_size = num_of_features
     net = stsgcn(
         data, adj, label,
-        points_per_hour, num_of_vertices, first_layer_embedding_size,
+        points_per_hour, num_of_vertices, first_layer_embedding_size, predict_features,
         filters, module_type, act_type,
         use_mask, mask_init_value, temporal_emb, spatial_emb,
         prefix="", rho=1, predict_length=12
     )
     assert net.infer_shape(
         data=(batch_size, points_per_hour, num_of_vertices, 1),
-        label=(batch_size, num_for_predict, num_of_vertices)
-    )[1][1] == (batch_size, num_for_predict, num_of_vertices)
+        label=(batch_size, num_for_predict, num_of_vertices, predict_features)
+    )[1][1] == (batch_size, num_for_predict, num_of_vertices, predict_features)
     return net
 
 

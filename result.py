@@ -28,6 +28,8 @@ net = construct_model(config)
 
 batch_size = config['batch_size']
 num_of_vertices = config['num_of_vertices']
+num_of_features = config['num_of_features']
+predict_features = config['predict_features']
 graph_signal_matrix_filename = config['graph_signal_matrix_filename']
 if isinstance(config['ctx'], list):
     ctx = [mx.gpu(i) for i in config['ctx']]
@@ -40,8 +42,8 @@ for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename, num_of_
     if args.test:
         x = x[: 100]
         y = y[: 100]
-    y = y[:, :, :, 0:1]
-    y = y.squeeze(axis=-1)
+    y = y[:, :, :, 0:predict_features]
+    # y = y.squeeze(axis=-1)
     loaders.append(
         mx.io.NDArrayIter(
             x, y if idx == 0 else None,
@@ -63,8 +65,7 @@ global_train_steps = training_samples // batch_size + 1
 all_info = []
 epochs = config['epochs']
 
-sym, arg_params, aux_params = mx.model.load_checkpoint(f"result/{config_filename.split('/')[1]}/STSGCN", epochs)
-# sym, arg_params, aux_params = mx.model.load_checkpoint(f'STSGCN_{config_filename.replace("/","_")}', epochs)
+sym, arg_params, aux_params = mx.model.load_checkpoint(f"STSGCN_{config_filename.replace('/','_')}", epochs)
 
 mod = mx.mod.Module(
     sym,
@@ -80,27 +81,29 @@ mod.bind(
     ), ],
     label_shapes=[(
         'label',
-        (batch_size, config['points_per_hour'], num_of_vertices)
+        (batch_size, config['points_per_hour'], num_of_vertices, predict_features)
     )]
 )
 
 mod.set_params(arg_params, aux_params)
 
-
-val_loader.reset()
-prediction = mod.predict(val_loader)[1].asnumpy()
-loss = masked_mae_np(val_y, prediction, 0)
-print('loss: %.2f' % (loss), flush=True)
-
+# test
 test_loader.reset()
 prediction = mod.predict(test_loader)[1].asnumpy()
-tmp_info = []
-for idx in range(config['num_for_predict']):
-    y, x = test_y[:, : idx + 1, :], prediction[:, : idx + 1, :]
-    tmp_info.append((
-        masked_mae_np(y, x, 0),
-        masked_mape_np(y, x, 0),
-        masked_mse_np(y, x, 0) ** 0.5
-    ))
-mae, mape, rmse = tmp_info[-1]
-print('MAE: {:.2f}, MAPE: {:.2f}, RMSE: {:.2f}'.format(mae, mape, rmse))
+filename = f"{config_filename.split('/')[1]}.csv"
+outfile = open(filename, "w")
+outfile.write("MAE,MAPE,RMSE\n")
+for p in range(predict_features):
+    tmp_info = []
+    for idx in range(config['num_for_predict']):
+        y, x = test_y[:, : idx + 1, :, p: p + 1], prediction[:, : idx + 1, :, p: p + 1]
+        print(x.shape)
+        tmp_info.append((
+            masked_mae_np(y, x, 0),
+            masked_mape_np(y, x, 0),
+            masked_mse_np(y, x, 0) ** 0.5
+        ))
+        outfile.write(f"{masked_mae_np(y, x, 0)},{masked_mape_np(y, x, 0)},{masked_mse_np(y, x, 0) ** 0.5}\n")
+    print(tmp_info)
+    mae, mape, rmse = tmp_info[-1]
+    print('test:, MAE: {:.2f}, MAPE: {:.2f}, RMSE: {:.2f}'.format(mae, mape, rmse),flush=True)

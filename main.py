@@ -29,6 +29,7 @@ net = construct_model(config)
 batch_size = config['batch_size']
 num_of_vertices = config['num_of_vertices']
 num_of_features = config['num_of_features']
+predict_features = config['predict_features']
 graph_signal_matrix_filename = config['graph_signal_matrix_filename']
 if isinstance(config['ctx'], list):
     ctx = [mx.gpu(i) for i in config['ctx']]
@@ -41,8 +42,9 @@ for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename, num_of_
     if args.test:
         x = x[: 100]
         y = y[: 100]
-    y = y[:, :, :, 0:1]
-    y = y.squeeze(axis=-1)
+    y = y[:, :, :, 0:predict_features]
+    # y = y.squeeze(axis=-1)
+    print(x.shape, y.shape)
     loaders.append(
         mx.io.NDArrayIter(
             x, y if idx == 0 else None,
@@ -78,7 +80,7 @@ mod.bind(
     ), ],
     label_shapes=[(
         'label',
-        (batch_size, config['points_per_hour'], num_of_vertices)
+        (batch_size, config['points_per_hour'], num_of_vertices, predict_features)
     )]
 )
 
