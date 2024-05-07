@@ -15,9 +15,11 @@ parser.add_argument("--config", type=str, help='configuration file')
 parser.add_argument("--test", action="store_true", help="test program")
 parser.add_argument("--plot", help="plot network graph", action="store_true")
 parser.add_argument("--save", action="store_true", help="save model")
+parser.add_argument("--folder", help="the folder to save model")
 args = parser.parse_args()
 
 config_filename = args.config
+save_folder = args.folder
 
 with open(config_filename, 'r') as f:
     config = json.loads(f.read())
@@ -160,6 +162,7 @@ def training(epochs):
             lowest_val_loss = loss
 
         global_epoch += 1
+    np.savez_compressed(f"{save_folder}/result.npz", prediction=prediction, target=test_y)
 
 
 if args.test:
@@ -174,4 +177,4 @@ print('step: {}\ntraining loss: {:.2f}\nvalidation loss: {:.2f}\n'
 print(the_best)
 
 if args.save:
-    mod.save_checkpoint(f'STSGCN_{config_filename.replace("/","_")}', epochs)
+    mod.save_checkpoint(f"{save_folder}/STSGCN_{config_filename.replace('/','_')}", epochs)
