@@ -60,7 +60,7 @@ def construct_model(config):
         points_per_hour, num_of_vertices, first_layer_embedding_size, predict_features,
         filters, module_type, act_type,
         use_mask, mask_init_value, temporal_emb, spatial_emb,
-        prefix="", rho=1, predict_length=12
+        prefix="", rho=1, predict_length=num_for_predict
     )
     assert net.infer_shape(
         data=(batch_size, points_per_hour, num_of_vertices, 1),

@@ -82,7 +82,7 @@ mod.bind(
     ), ],
     label_shapes=[(
         'label',
-        (batch_size, config['points_per_hour'], num_of_vertices, predict_features)
+        (batch_size, config['num_for_predict'], num_of_vertices, predict_features)
     )]
 )
 
