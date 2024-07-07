@@ -26,8 +26,11 @@ def construct_model(config):
         if not os.path.exists(id_filename):
             id_filename = None
 
-    adj = get_adjacency_matrix(adj_filename, num_of_vertices,
-                               id_filename=id_filename, type_ = "distance")
+    adj_type = 'connectivity'
+    if 'adj_type' in config and config['adj_type'] is not None:
+        adj_type = config['adj_type']
+    adj = get_adjacency_matrix(adj_filename, num_of_vertices, type_ = adj_type,
+                               id_filename=id_filename)
     adj_mx = construct_adj(adj, 3)
     print("The shape of localized adjacency matrix: {}".format(
         adj_mx.shape), flush=True)
@@ -105,6 +108,7 @@ def get_adjacency_matrix(distance_df_filename, num_of_vertices,
                 A[id_dict[j], id_dict[i]] = 1
         return A
 
+    print(f"adj_type: {type_}")
     # Fills cells in the matrix with distances.
     with open(distance_df_filename, 'r') as f:
         f.readline()
@@ -119,6 +123,8 @@ def get_adjacency_matrix(distance_df_filename, num_of_vertices,
             elif type_ == 'distance':
                 A[i, j] = 1 / distance
                 A[j, i] = 1 / distance
+            elif type_ == 'weight':
+                A[i, j] = distance
             else:
                 raise ValueError("type_ error, must be "
                                  "connectivity or distance!")
